@@ -3,6 +3,6 @@
 Pronounced like "musket".  
 
 
-Errors:
-0 - exited successfully
-1000 - cannot find msct.conf
+Error codes:  
+0 - exited successfully  
+1000 - cannot find msct.conf  
