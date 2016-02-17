@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+var cfg = loadConfig()
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "msct"
@@ -30,8 +32,11 @@ func startCommand() cli.Command {
 		Action: func(c *cli.Context) {
 			servername := c.Args().First()
 			args := buildInvocation(servername)
-			cmd := exec.Command("screen", args...)
+			cmd := exec.Command("tmux", args...)
 			cmd.Dir = buildServerDir(servername)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Stdin = os.Stdin
 			if serverExists(servername) {
 				if err := cmd.Run(); err != nil {
 					os.Exit(999)
@@ -49,15 +54,16 @@ func resumeCommand() cli.Command {
 	command := cli.Command{
 		Name:    "resume",
 		Aliases: []string{"r"},
-		Usage:   "resume a server's screen session",
+		Usage:   "resume a server's tmux session",
 		Action: func(c *cli.Context) {
 			servername := c.Args().First()
-			screenname := buildScreenName(servername)
-			args := []string{"-x", screenname}
-			cmd := exec.Command("screen", args...)
+			tmuxname := buildTmuxName(servername)
+			args := []string{"a", "-t", tmuxname}
+			cmd := exec.Command("tmux", args...)
 			if serverExists(servername) {
-				output, _ := cmd.Output()
-				println(output)
+				if err := cmd.Run(); err != nil {
+					os.Exit(999)
+				}
 			} else {
 				println("No server known by the name \"" + servername + "\". Either server.jar is missing or the server directory was not configured before compilation.")
 				os.Exit(999)
@@ -92,31 +98,27 @@ func loadConfig() *config.Config {
 	return cfg
 }
 
-func buildScreenName(servername string) string {
-	cfg := loadConfig()
-
-	//Load from config and set base screen prefix, if not set in config, default to "msct-"
-	screenbasename, err := cfg.String("screenbasename")
+func buildTmuxName(servername string) string {
+	//Load from config and set base tmux prefix, if not set in config, default to "msct-"
+	tmuxbasename, err := cfg.String("tmuxbasename")
 	if err != nil {
-		screenbasename = "msct-"
+		tmuxbasename = "msct-"
 	}
 
-	return screenbasename + servername
+	return tmuxbasename + servername
 }
 
 func buildInvocation(servername string) []string {
-	cfg := loadConfig()
-
-	//Load from config and set whether to start screen attached or not, if not set in config, default to attached
-	startStringAttached, err := cfg.Bool("startStringAttached")
+	//Load from config and set whether to start tmux attached or not, if not set in config, default to attached
+	startTmuxAttached, err := cfg.Bool("startTmuxAttached")
 	if err != nil {
-		startStringAttached = true
+		startTmuxAttached = true
 	}
-	screenParams := ""
-	if startStringAttached == true {
-		screenParams = "-dmS"
+	var tmuxParams []string
+	if startTmuxAttached == true {
+		tmuxParams = append(tmuxParams, "new", "-s", buildTmuxName(servername))
 	} else {
-		screenParams = "-mS"
+		tmuxParams = append(tmuxParams, "new", "-d", "-s", buildTmuxName(servername))
 	}
 
 	//Load from config and set java parameters, if not set in config, set reasonable defaults
@@ -136,16 +138,19 @@ func buildInvocation(servername string) []string {
 	fullpath := buildServerDir(servername) + getJarFile()
 
 	var args []string
-	args = append(args, screenParams, buildScreenName(servername), "java", "-server", "-Xms"+ram+"M", "-Xmx"+ram+"M")
+	args = append(args, tmuxParams...)
+	args = append(args, "'java", "-server", "-Xms"+ram+"M", "-Xmx"+ram+"M")
 	args = append(args, javaParamsArray...)
-	args = append(args, "-jar", fullpath)
+	args = append(args, "-jar", fullpath+"'")
+
+	if debugIsEnabled() {
+		println(strings.Join(args, " "))
+	}
 
 	return args
 }
 
 func buildServerDir(servername string) string {
-	cfg := loadConfig()
-
 	//Load from config and set msct root directory, if not set in config, default to /opt/minecraft/
 	rootdir, err := cfg.String("paths.root")
 	if err != nil {
@@ -156,8 +161,6 @@ func buildServerDir(servername string) string {
 }
 
 func getJarFile() string {
-	cfg := loadConfig()
-
 	//Load from config and set server jar filename, if not set in config, default to server.jar
 	jarfile, err := cfg.String("paths.jarfile")
 	if err != nil {
@@ -165,4 +168,9 @@ func getJarFile() string {
 	}
 
 	return jarfile
+}
+
+func debugIsEnabled() bool {
+	debug, _ := cfg.Bool("debug")
+	return debug
 }
