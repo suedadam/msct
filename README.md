@@ -29,6 +29,7 @@ Press the key combination `CTRL + b`, then type `d` by itself.
 * Daemonized mode, with web portal and user authentication for starting and stopping servers.
 * Configurable automailer via [Mailgun](http://mailgun.com), with attached crash reports and server logs.
 * Self updater.
+* Sending of arbitrary commands into the server without attaching.
 * Windows and OSX compatibility.
 * Launch server as non-root user.
 * World backups.
