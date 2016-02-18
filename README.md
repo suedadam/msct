@@ -1,5 +1,5 @@
 #**MSCT** - Minecraft Server Control Tool [![Build Status](https://travis-ci.org/nathanpaulyoung/msct.svg?branch=master)](https://travis-ci.org/nathanpaulyoung/msct)  
-Pronounced like "musket".
+Pronounced like "musket". Written in [golang](http://golang.org). Made by a server admin for server admins.
 
 ##Installation
 1. Download the [latest](https://github.com/nathanpaulyoung/msct/releases/latest) binary from the releases page.
@@ -30,6 +30,9 @@ Press the key combination `CTRL + b`, then type `d` by itself.
 * Configurable automailer via [Mailgun](http://mailgun.com), with attached crash reports and server logs.
 * Self updater.
 * Windows and OSX compatibility.
+* Launch server as non-root user.
+* World backups.
+* Automatic leveraging of tmux's panes for system resource visibility while viewing the console.
 
 ##Project Information
 I started writing MSCT when I started using a solid state drive on my own personal friends and family server. I made a symlink for my world directory, and [MSM](http://msmhq.com) overwrote it with its own symlink. I was not thrilled so very few things in MSM are configurable to my satisfaction, and that there was so much extra fluff. So I set out to roll my own solution.
