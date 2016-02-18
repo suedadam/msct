@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/codegangsta/cli"
 	"github.com/olebedev/config"
 	"io/ioutil"
@@ -34,9 +35,9 @@ func startCommand() cli.Command {
 			args := buildInvocation(servername)
 			cmd := exec.Command("tmux", args...)
 			cmd.Dir = buildServerDir(servername)
+			cmd.Stdin = os.Stdin
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
-			cmd.Stdin = os.Stdin
 			if serverExists(servername) {
 				if err := cmd.Run(); err != nil {
 					os.Exit(999)
@@ -60,6 +61,9 @@ func resumeCommand() cli.Command {
 			tmuxname := buildTmuxName(servername)
 			args := []string{"a", "-t", tmuxname}
 			cmd := exec.Command("tmux", args...)
+			cmd.Stdin = os.Stdin
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
 			if serverExists(servername) {
 				if err := cmd.Run(); err != nil {
 					os.Exit(999)
@@ -139,9 +143,7 @@ func buildInvocation(servername string) []string {
 
 	var args []string
 	args = append(args, tmuxParams...)
-	args = append(args, "'java", "-server", "-Xms"+ram+"M", "-Xmx"+ram+"M")
-	args = append(args, javaParamsArray...)
-	args = append(args, "-jar", fullpath+"'")
+	args = append(args, fmt.Sprintf("java -server -Xms%sM -Xmx%sM %s -jar %s", ram, ram, strings.Join(javaParamsArray, " "), fullpath))
 
 	if debugIsEnabled() {
 		println(strings.Join(args, " "))
