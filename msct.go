@@ -66,7 +66,7 @@ func haltCommand() cli.Command {
 					os.Exit(999)
 				}
 			} else {
-				println("No server known by the name \"" + servername + "\". Either server.jar is missing or the server directory was not configured before compilation.")
+				println("No server known by the name \"" + servername + "\". Is server.jar missing?")
 				os.Exit(999)
 			}
 		},
