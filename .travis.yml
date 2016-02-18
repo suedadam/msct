@@ -2,3 +2,13 @@ language: go
 
 go:
     - tip
+script:
+    - make dist
+deploy:
+    provider: releases
+        api_key:
+            secure: "ssD7DPHEyEYYhtODSbrnaqpvqGDDEGujWFHSvnNwJ0nhzbHuKiO1luLNWDBYZXbvQGE6kUp95hXKC/DP8DVi5Lb+1ZJzo0ARFxprbqmI5m9kH20iXzF1tTupALdrHoL6RdgQZJAfZL5UswazXajkq3/PSRc0qLjRXsnvmXimbeZOsA+I0bhd8JKv616oPhAkvRZRB3Hu7jZHR9hZst6yLHMnAMXQptwZDNCyr+cOYSsZ43Kk0ITJV+wDHxSw04zp6dNimldPXB5PfWgppPmbj8Qw5henTJUbE60YLxaj2q6Vpjer5V4Qqy4+vhpIIsP6mczxSrdX99D8m2nwGR+5qwgL0A1FifX7JzWZp4UXZhmE0eVJiXjcbGPBr84KEGm8LuPk/xtCkNp+5tqEcdZQxn9H8sbrI2ttxOhVGm/kHTqb/AO4UEh7PIsjDWaa2XlZTO5rZGmFCQxkHardOhrMJzT+Z9YNVaQTUGP8yZRe+L7HPcE4dFpwLZS1LgQOUBcPJHX6Xiw3C0IBTLj3xFkZaUiShuLcpkj5GDe7IBh3UZaOCc6VHGk4RcyO8SXF3PsEiuarlnU0lqH3EF6Oyh3k4ep7rT462fsG3OreCChzMvpPUJWxr4etP6vTy06igvDTTXD+MhE5ASYOFJRg6kLr2CXAmXbSAYov1wPNIyZnFZo="
+    file: 'release.zip'
+    skip_cleanup: true
+    on:
+        tags

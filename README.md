@@ -1,5 +1,4 @@
-#**MSCT** - Minecraft Server Control Tool  
-**A Minecraft server control utility written in [Golang](https://golang.org/).**  
+#**MSCT** - Minecraft Server Control Tool [![Build Status](https://travis-ci.org/nathanpaulyoung/msct.svg?branch=master)](https://travis-ci.org/nathanpaulyoung/msct)  
 Pronounced like "musket".  
 
 
