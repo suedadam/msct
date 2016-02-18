@@ -36,9 +36,9 @@ Press the key combination `CTRL + b`, then type `d` by itself.
 * Automatic leveraging of tmux's panes for system resource visibility while viewing the console.
 
 ##Project Information
-I started writing MSCT when I started using a solid state drive on my own personal friends and family server. I made a symlink for my world directory, and [MSM](http://msmhq.com) overwrote it with its own symlink. I was not thrilled so very few things in MSM are configurable to my satisfaction, and that there was so much extra fluff. So I set out to roll my own solution.
+I started writing MSCT when I started using a solid state drive on my own personal friends and family server. I made a symlink for my world directory, and [MSM](http://msmhq.com) overwrote it with its own symlink. I was not thrilled that so few things in MSM are configurable to my satisfaction, and that there was so much extra fluff. So I set out to roll my own solution.
 
-This project is currently run by just one guy. If you want to get involved, send me a pull request, open an issue, or request a feature. I'm very open to making this project the best it can be.
+This project is currently run by just one guy. If you want to get involved, send me a pull request, open an issue, or request a feature. I'm very open to making this project the best it can be. You can also always [PM me on reddit](https://www.reddit.com/message/compose?to=nathanpaulyoung), under the same username as here.
 
 ##Special Thanks:  
 [@Merovius](http://github.com/Merovius) for helping with the issues with attaching.
