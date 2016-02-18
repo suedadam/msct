@@ -94,12 +94,43 @@ func loadConfig() *config.Config {
 		r, _ := ioutil.ReadFile("/etc/msct.conf")
 		file = string(r)
 	} else {
-		println("Cannot locate msct.conf; it should be either alongside the msct binary or in the /etc/ directory.")
-		os.Exit(1000)
+		err := generateConfig()
+		if err != nil {
+			os.Exit(999)
+		}
+		println("Could not locate msct.conf, so I generated the default file for you at /etc/msct.conf")
+		r, _ := ioutil.ReadFile("/etc/msct.conf")
+		file = string(r)
 	}
 	cfg, _ := config.ParseYaml(file)
 
 	return cfg
+}
+
+func generateConfig() error {
+	defaultConfig := map[string]interface{}{
+		"user":           "minecraft",
+		"screenbasename": "msct-",
+		"ram":            "2048",
+		"paths": map[string]interface{}{
+			"root":    "/opt/minecraft/",
+			"jarfile": "server.jar",
+		},
+		"startTmuxAttached": "true",
+		"javaParams":        "-XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+CMSParallelRemarkEnabled -XX:ParallelGCThreads=2 -XX:+DisableExplicitGC -XX:MaxGCPauseMillis=500 -XX:SurvivorRatio=16 -XX:TargetSurvivorRatio=90",
+		"debug":             "false",
+	}
+
+	yaml, err := config.RenderYaml(defaultConfig)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile("/etc/msct.conf", []byte(yaml), 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func buildTmuxName(servername string) string {
