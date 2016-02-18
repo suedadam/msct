@@ -21,6 +21,7 @@ func main() {
 	app.Commands = []cli.Command{
 		startCommand(),
 		resumeCommand(),
+		haltCommand(),
 	}
 	app.Run(os.Args)
 }
@@ -38,6 +39,28 @@ func startCommand() cli.Command {
 			cmd.Stdin = os.Stdin
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
+			if serverExists(servername) {
+				if err := cmd.Run(); err != nil {
+					os.Exit(999)
+				}
+			} else {
+				println("No server known by the name \"" + servername + "\". Either server.jar is missing or the server directory was not configured before compilation.")
+				os.Exit(999)
+			}
+		},
+	}
+	return command
+}
+
+func haltCommand() cli.Command {
+	command := cli.Command{
+		Name:    "halt",
+		Aliases: []string{"h", "stop"},
+		Usage:   "halt a server",
+		Action: func(c *cli.Context) {
+			servername := c.Args().First()
+			tmuxname := buildTmuxName(servername)
+			cmd := exec.Command("tmux", "send-keys", "-t", tmuxname+":0", "stop", "Enter")
 			if serverExists(servername) {
 				if err := cmd.Run(); err != nil {
 					os.Exit(999)

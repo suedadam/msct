@@ -1,5 +1,4 @@
 language: go
-
 go:
     - tip
 script: go build ./...
