@@ -1,6 +1,7 @@
 language: go
 go:
     - tip
+script: go build ./...
 deploy:
     provider: releases
     api_key:
