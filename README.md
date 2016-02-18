@@ -9,4 +9,4 @@ Error codes:
 
 
 Special Thanks:  
-@Merovius for helping with the issues with attaching.
+[@Merovius](http://github.com/Merovius) for helping with the issues with attaching.
