@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 var cfg = loadConfig()
@@ -15,13 +16,14 @@ var cfg = loadConfig()
 func main() {
 	app := cli.NewApp()
 	app.Name = "msct"
-	app.Version = "0.1.0"
+	app.Version = "1.1.0"
 	app.Usage = "Minecraft Server Control Tool"
 	app.Author = "Nathan Young (http://github.com/nathanpaulyoung)"
 	app.Commands = []cli.Command{
 		startCommand(),
 		resumeCommand(),
 		haltCommand(),
+		keepAliveCommand(),
 	}
 	app.Run(os.Args)
 }
@@ -33,20 +35,7 @@ func startCommand() cli.Command {
 		Usage:   "start a server",
 		Action: func(c *cli.Context) {
 			servername := c.Args().First()
-			args := buildInvocation(servername)
-			cmd := exec.Command("tmux", args...)
-			cmd.Dir = buildServerDir(servername)
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			if serverExists(servername) {
-				if err := cmd.Run(); err != nil {
-					os.Exit(999)
-				}
-			} else {
-				println("No server known by the name \"" + servername + "\". Either server.jar is missing or the server directory was not configured before compilation.")
-				os.Exit(999)
-			}
+			startServer(servername)
 		},
 	}
 	return command
@@ -59,8 +48,7 @@ func haltCommand() cli.Command {
 		Usage:   "halt a server",
 		Action: func(c *cli.Context) {
 			servername := c.Args().First()
-			tmuxname := buildTmuxName(servername)
-			cmd := exec.Command("tmux", "send-keys", "-t", tmuxname+":0", "stop", "Enter")
+			cmd := exec.Command("tmux", "send-keys", "-t", buildTmuxName(servername)+":0", "stop", "Enter")
 			if serverExists(servername) {
 				if err := cmd.Run(); err != nil {
 					os.Exit(999)
@@ -81,13 +69,12 @@ func resumeCommand() cli.Command {
 		Usage:   "resume a server's tmux session",
 		Action: func(c *cli.Context) {
 			servername := c.Args().First()
-			tmuxname := buildTmuxName(servername)
-			args := []string{"a", "-t", tmuxname}
+			args := []string{"a", "-t", buildTmuxName(servername)}
 			cmd := exec.Command("tmux", args...)
 			cmd.Stdin = os.Stdin
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
-			if serverExists(servername) {
+			if serverIsRunning(servername) {
 				if err := cmd.Run(); err != nil {
 					os.Exit(999)
 				}
@@ -100,46 +87,87 @@ func resumeCommand() cli.Command {
 	return command
 }
 
+func keepAliveCommand() cli.Command {
+	command := cli.Command{
+		Name:    "keepalive",
+		Aliases: []string{"ka"},
+		Usage:   "restart a server's tmux session if server detected as stopped",
+		Action: func(c *cli.Context) {
+			servername := c.Args().First()
+			for {
+				if !serverIsRunning(servername) {
+					startServer(servername)
+					time.Sleep(time.Second * 30)
+				}
+			}
+		},
+	}
+	return command
+}
+
+func startServer(servername string) {
+	args := buildInvocation(servername)
+	cmd := exec.Command("tmux", args...)
+	cmd.Dir = buildServerDir(servername)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if serverExists(servername) && !serverIsRunning(servername) {
+		if err := cmd.Run(); err != nil {
+			os.Exit(999)
+		}
+	} else {
+		println("Cannot start server. Either already running or server.jar does not exist.")
+		os.Exit(999)
+	}
+}
+
 func serverExists(servername string) bool {
 	if _, err := os.Stat(buildServerDir(servername) + getJarFile()); err == nil {
 		return true
 	}
+
 	return false
+}
+
+func serverIsRunning(servername string) bool {
+	cmd := exec.Command("tmux", "has-session", "-t", buildTmuxName(servername))
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+
+	return true
 }
 
 func loadConfig() *config.Config {
 	//Load msct.conf, prefer local over /etc/, and parse yaml
-	file := ""
+	var yaml *config.Config
 	if _, err := os.Stat("./msct.conf"); err == nil {
-		r, _ := ioutil.ReadFile("msct.conf")
-		file = string(r)
+		yaml, _ = config.ParseYamlFile("./msct.conf")
 	} else if _, err := os.Stat("/etc/msct.conf"); err == nil {
-		r, _ := ioutil.ReadFile("/etc/msct.conf")
-		file = string(r)
+		yaml, _ = config.ParseYamlFile("/etc/msct.conf")
 	} else {
 		err := generateConfig()
 		if err != nil {
 			os.Exit(999)
 		}
 		println("Could not locate msct.conf, so I generated the default file for you at /etc/msct.conf")
-		r, _ := ioutil.ReadFile("/etc/msct.conf")
-		file = string(r)
+		yaml, _ = config.ParseYamlFile("/etc/msct.conf")
 	}
-	cfg, _ := config.ParseYaml(file)
 
-	return cfg
+	return yaml
 }
 
 func generateConfig() error {
 	defaultConfig := map[string]interface{}{
 		"user":           "minecraft",
-		"screenbasename": "msct-",
+		"screenBaseName": "msct-",
 		"ram":            "2048",
 		"paths": map[string]interface{}{
 			"root":    "/opt/minecraft/",
-			"jarfile": "server.jar",
+			"jarFile": "server.jar",
 		},
-		"startTmuxAttached": "true",
+		"startTmuxAttached": "false",
 		"javaParams":        "-XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+CMSParallelRemarkEnabled -XX:ParallelGCThreads=2 -XX:+DisableExplicitGC -XX:MaxGCPauseMillis=500 -XX:SurvivorRatio=16 -XX:TargetSurvivorRatio=90",
 		"debug":             "false",
 	}
@@ -218,12 +246,12 @@ func buildServerDir(servername string) string {
 
 func getJarFile() string {
 	//Load from config and set server jar filename, if not set in config, default to server.jar
-	jarfile, err := cfg.String("paths.jarfile")
+	jarFile, err := cfg.String("paths.jarFile")
 	if err != nil {
-		jarfile = "server.jar"
+		jarFile = "server.jar"
 	}
 
-	return jarfile
+	return jarFile
 }
 
 func debugIsEnabled() bool {

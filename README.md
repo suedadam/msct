@@ -21,11 +21,17 @@ Pronounced like "musket". Written in [golang](http://golang.org). Made by a serv
     msct h <servername>
     msct stop <servername>
 
+###Keeping a server alive
+    msct keepalive <servername>
+    msct ka <servername>
+Note: You probably want to run `msct keepalive` in the background. I recommend `nohup msct keepalive` for its simplicity, but there are many options for backgrounding a program available to choose from.
+
+Alternatively, you can set up a cronjob to periodically run `msct start`, as this command will not run if the target server is already running.
+
 ###Detaching from the server console
 Press the key combination `CTRL + b`, then type `d` by itself.
 
 ##Planned Features
-* Check if server is running on `msct start`. If so, do nothing. If not, start it. This will allow msct to be used in a cronjob.
 * Daemonized mode, with web portal and user authentication for starting and stopping servers.
 * Configurable automailer via [Mailgun](http://mailgun.com), with attached crash reports and server logs.
 * Self updater.
