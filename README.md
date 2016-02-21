@@ -28,6 +28,11 @@ Note: You probably want to run `msct keepalive` in the background. I recommend `
 
 Alternatively, you can set up a cronjob to periodically run `msct start`, as this command will not run if the target server is already running.
 
+###Sending arbitrary commands to a server
+    msct command <servername> <command>
+    msct cmd <servername> <command>
+    msct c <servername> <command>
+
 ###Detaching from the server console
 Press the key combination `CTRL + b`, then type `d` by itself.
 
@@ -35,7 +40,6 @@ Press the key combination `CTRL + b`, then type `d` by itself.
 * Daemonized mode, with web portal and user authentication for starting and stopping servers.
 * Configurable automailer via [Mailgun](http://mailgun.com), with attached crash reports and server logs.
 * Self updater.
-* Sending of arbitrary commands into the server without attaching.
 * Windows and OSX compatibility.
 * Launch server as non-root user.
 * World backups.

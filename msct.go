@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"github.com/codegangsta/cli"
+	"github.com/golang/glog"
 	"github.com/olebedev/config"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -24,6 +26,7 @@ func main() {
 		resumeCommand(),
 		haltCommand(),
 		keepAliveCommand(),
+		commandCommand(),
 	}
 	app.Run(os.Args)
 }
@@ -34,7 +37,7 @@ func startCommand() cli.Command {
 		Aliases: []string{"s"},
 		Usage:   "start a server",
 		Action: func(c *cli.Context) {
-			servername := c.Args().First()
+			servername := c.Args()[0]
 			startServer(servername)
 		},
 	}
@@ -47,16 +50,8 @@ func haltCommand() cli.Command {
 		Aliases: []string{"h", "stop"},
 		Usage:   "halt a server",
 		Action: func(c *cli.Context) {
-			servername := c.Args().First()
-			cmd := exec.Command("tmux", "send-keys", "-t", buildTmuxName(servername)+":0", "stop", "Enter")
-			if serverExists(servername) {
-				if err := cmd.Run(); err != nil {
-					os.Exit(999)
-				}
-			} else {
-				println("No server known by the name \"" + servername + "\". Is server.jar missing?")
-				os.Exit(999)
-			}
+			servername := c.Args()[0]
+			tmuxSendKeys(servername, 0, 0, "stop")
 		},
 	}
 	return command
@@ -68,7 +63,7 @@ func resumeCommand() cli.Command {
 		Aliases: []string{"r"},
 		Usage:   "resume a server's tmux session",
 		Action: func(c *cli.Context) {
-			servername := c.Args().First()
+			servername := c.Args()[0]
 			args := []string{"a", "-t", buildTmuxName(servername)}
 			cmd := exec.Command("tmux", args...)
 			cmd.Stdin = os.Stdin
@@ -76,11 +71,10 @@ func resumeCommand() cli.Command {
 			cmd.Stderr = os.Stderr
 			if serverIsRunning(servername) {
 				if err := cmd.Run(); err != nil {
-					os.Exit(999)
+					glog.Fatalf("Error in function resumeCommand(); please inform the developer.\n%s", err)
 				}
 			} else {
-				println("No server known by the name \"" + servername + "\". Either server.jar is missing or the server directory was not configured before compilation.")
-				os.Exit(999)
+				glog.Errorf("Server '%s' is not running.", servername)
 			}
 		},
 	}
@@ -93,13 +87,32 @@ func keepAliveCommand() cli.Command {
 		Aliases: []string{"ka"},
 		Usage:   "restart a server's tmux session if server detected as stopped",
 		Action: func(c *cli.Context) {
-			servername := c.Args().First()
+			servername := c.Args()[0]
+			keepAliveFreq, _ := cfg.Int("keepAliveFreq")
 			for {
 				if !serverIsRunning(servername) {
 					startServer(servername)
-					time.Sleep(time.Second * 30)
+					time.Sleep(time.Second * time.Duration(keepAliveFreq))
 				}
 			}
+		},
+	}
+	return command
+}
+
+func commandCommand() cli.Command {
+	command := cli.Command{
+		Name:    "command",
+		Aliases: []string{"cmd", "c"},
+		Usage:   "send a command to the tmux session",
+		Action: func(c *cli.Context) {
+			servername := c.Args()[0]
+			var args []string
+			for i := 1; i < len(c.Args()); i++ {
+				args = append(args, c.Args()[i])
+			}
+			command := strings.Join(args, " ")
+			tmuxSendKeys(servername, 0, 0, command)
 		},
 	}
 	return command
@@ -114,20 +127,29 @@ func startServer(servername string) {
 	cmd.Stderr = os.Stderr
 	if serverExists(servername) && !serverIsRunning(servername) {
 		if err := cmd.Run(); err != nil {
-			os.Exit(999)
+			glog.Fatalf("Error in function startServer(); please inform the developer.\n%s", err)
 		}
 	} else {
-		println("Cannot start server. Either already running or server.jar does not exist.")
-		os.Exit(999)
+		glog.Errorf("Server '%s' does not exist or is already running.", servername)
+	}
+}
+
+func tmuxSendKeys(servername string, window int, pane int, command string) {
+	cmd := exec.Command("tmux", "send-keys", "-t", buildTmuxName(servername)+":"+strconv.Itoa(window)+"."+strconv.Itoa(pane), command, "Enter")
+	if serverIsRunning(servername) {
+		if err := cmd.Run(); err != nil {
+			glog.Fatalf("Error in function tmuxSendKeys(); please inform the developer.\n%s", err)
+		}
+	} else {
+		glog.Errorf("Server '%s' is not running.", servername)
 	}
 }
 
 func serverExists(servername string) bool {
-	if _, err := os.Stat(buildServerDir(servername) + getJarFile()); err == nil {
-		return true
+	if _, err := os.Stat(buildServerDir(servername) + getJarFile()); err != nil {
+		return false
 	}
-
-	return false
+	return true
 }
 
 func serverIsRunning(servername string) bool {
@@ -149,9 +171,9 @@ func loadConfig() *config.Config {
 	} else {
 		err := generateConfig()
 		if err != nil {
-			os.Exit(999)
+			glog.Fatalf("Could not generate config file; please inform the developer.\n%s", err)
 		}
-		println("Could not locate msct.conf, so I generated the default file for you at /etc/msct.conf")
+		glog.Warningf("Could not locate msct.conf, so I generated the default file for you at /etc/msct.conf")
 		yaml, _ = config.ParseYamlFile("/etc/msct.conf")
 	}
 
@@ -170,6 +192,7 @@ func generateConfig() error {
 		"startTmuxAttached": "false",
 		"javaParams":        "-XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+CMSParallelRemarkEnabled -XX:ParallelGCThreads=2 -XX:+DisableExplicitGC -XX:MaxGCPauseMillis=500 -XX:SurvivorRatio=16 -XX:TargetSurvivorRatio=90",
 		"debug":             "false",
+		"keepAliveFreq":     "30",
 	}
 
 	yaml, err := config.RenderYaml(defaultConfig)
