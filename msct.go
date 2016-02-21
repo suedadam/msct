@@ -184,8 +184,8 @@ func generateConfig() error {
 	defaultConfig := map[string]interface{}{
 		"user":           "minecraft",
 		"screenBaseName": "msct-",
-		"ram-min":            "2048",
-		"ram-max":            "4096",
+		"rammin":            "2048",
+		"rammax":            "4096",
 		"paths": map[string]interface{}{
 			"root":    "/opt/minecraft/",
 			"jarFile": "server.jar",
@@ -232,14 +232,14 @@ func buildInvocation(servername string) []string {
 	}
 
 	//Load from config and set java parameters, if not set in config, set reasonable defaults
-	ram-min, err := cfg.String("ram-min")
+	rammin, err := cfg.String("rammin")
 	if err != nil {
-		ram-min = "2048M"
+		rammin = "2048M"
 	}
 
-	ram-max, err := cfg.String("ram-max")
+	rammax, err := cfg.String("rammax")
 	if err != nil {
-		ram-max = "4096M"
+		rammax = "4096M"
 	}
 
 	//Load from config and set java parameters, if not set in config, set reasonable defaults
@@ -254,7 +254,7 @@ func buildInvocation(servername string) []string {
 
 	var args []string
 	args = append(args, tmuxParams...)
-	args = append(args, fmt.Sprintf("java -server -Xms%sM -Xmx%sM %s -jar %s", ram-min, ram-max, strings.Join(javaParamsArray, " "), fullpath))
+	args = append(args, fmt.Sprintf("java -server -Xms%sM -Xmx%sM %s -jar %s", rammin, rammax, strings.Join(javaParamsArray, " "), fullpath))
 
 	if debugIsEnabled() {
 		println(strings.Join(args, " "))
